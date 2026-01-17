@@ -1,0 +1,88 @@
+@page "/"
+@inject TodoService TodoService
+@implements IDisposable
+
+<PageTitle>Todo App</PageTitle>
+
+<div class="todo-container">
+    <h2>My Todos</h2>
+    
+    <div class="todo-input-container">
+        <input @bind="newTodoTitle" 
+               @bind:event="oninput"
+               @onkeypress="HandleKeyPress"
+               placeholder="Add a new todo..." 
+               class="todo-input" />
+        <button @onclick="AddTodo" class="btn btn-primary">Add</button>
+    </div>
+
+    @if (todos.Any())
+    {
+        <div class="todo-stats">
+            <span>Total: @todos.Count() | Completed: @todos.Count(t => t.IsCompleted) | Pending: @todos.Count(t => !t.IsCompleted)</span>
+        </div>
+
+        <div class="todo-list">
+            @foreach (var todo in todos)
+            {
+                <div class="todo-item @(todo.IsCompleted ? "completed" : "")">
+                    <input type="checkbox" 
+                           checked="@todo.IsCompleted" 
+                           @onchange="() => ToggleTodo(todo.Id)" 
+                           class="todo-checkbox" />
+                    <span class="todo-title">@todo.Title</span>
+                    <button @onclick="() => DeleteTodo(todo.Id)" class="btn btn-danger btn-sm">Delete</button>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <p>No todos yet. Add one above to get started!</p>
+        </div>
+    }
+</div>
+
+@code {
+    private string newTodoTitle = string.Empty;
+    private IEnumerable<TodoItem> todos = new List<TodoItem>();
+
+    protected override void OnInitialized()
+    {
+        todos = TodoService.GetTodos();
+        TodoService.OnChange += StateHasChanged;
+    }
+
+    private void AddTodo()
+    {
+        if (!string.IsNullOrWhiteSpace(newTodoTitle))
+        {
+            TodoService.AddTodo(newTodoTitle);
+            newTodoTitle = string.Empty;
+        }
+    }
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddTodo();
+        }
+    }
+
+    private void ToggleTodo(int id)
+    {
+        TodoService.ToggleTodo(id);
+    }
+
+    private void DeleteTodo(int id)
+    {
+        TodoService.DeleteTodo(id);
+    }
+
+    public void Dispose()
+    {
+        TodoService.OnChange -= StateHasChanged;
+    }
+}
